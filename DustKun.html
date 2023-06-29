@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <title>DustKun</title>
+    <link rel="stylesheet" href="style.css" />
+    <link rel="stylesheet" href="vs2015.min.css" />
+    <script src="highlight.min.js"></script>
+    <script>hljs.highlightAll();</script>
+</head>
+<div>
+    <h3>概要</h3>
+    <hr class="subhr">
+    <p>ジャンル:3Dアクション</p>
+    <p>プレイ人数:1人</p>
+    <p>プラットフォーム:Oculus VR</p>
+    <p>開発環境:2021.2.15f1</p>
+    <p>使用言語:C#</p>
+    <p>開発人数:9人(リーダ1人・プランナー1人・プログラマーリーダー1人・プログラマー2人・3Dデザイナー4人)</p>
+    <p>開発期間：22年4月～22年10月</p>
+    <p>VRゲームを作りたくて挑戦しました。</p>
+    <h3>作品を通じて</h3>
+      <hr>  
+      <p>VR,3Dともに初見だったのでどのように動作させればうまく動くか模索できた</p>
+      <h3>学び</h3>
+      <hr>
+      <li>VRゲームを作るための環境設定や調整ができるようになった。</li>
+      <li>3D空間の挙動など学ぶことができた</li>
+      <h3>反省</h3>
+      <hr>
+      <p>UIを作成したがもっときれいに作れた感じがしました。</p>
+      <p>自分が一番楽をしていた感じがあったのでもっと手伝えたかなという気がしていました。</p>
+    <h3>担当箇所</h3>
+    <hr class="subhr">
+    <h3>チュートリアルでのアイテム生成スクリプト</h3>
+    <hr>
+    <div>
+        <pre class="code C#"><code>
+            using System.Collections;
+            using System.Collections.Generic;
+            using UnityEngine;
+            
+            public class Tutorial_item : MonoBehaviour
+            {
+                [SerializeField]
+                private Vector3 distance;
+            
+                private float dilaytime;
+            
+                private float maxtime = 3.0f;
+            
+                [SerializeField]
+                private List<GameObject> item;
+            
+                // Update is called once per frame
+                void Update()
+                {
+            
+                    //ボタンを押すとすべてのアイテムをドロップ(3秒のディレイ付き)
+            
+                    dilaytime += Time.deltaTime;
+                    if (OVRInput.Get(OVRInput.Button.One) && maxtime < dilaytime)
+                    //if(Input.GetKeyDown(KeyCode.W) && maxtime < dilaytime)
+                    { 
+                        for(int num = 0; num < item.Count; num++)
+                        Instantiate (item[num],new Vector3(Random.Range(0,5), transform.position.y, Random.Range(0, 5)), Quaternion.identity);
+                        dilaytime = 0f;
+                    }
+                }
+            
+            
+            }
+    </code>
+</pre>
+    </div>
+        <p>
+            チュートリアルでアイテムを落とす必要があったのでそれ用に制作したスクリプトです。
+            ディレイをかけないとバグってしまうためかけてあります。
+        </p>
+</div>
+<h3>画面上に残りのゴミの数の表示</h3>
+<hr>
+<div>
+    <pre class="code C#"><code>
+        using System.Collections;
+        using System.Collections.Generic;
+        using UnityEngine;
+        using TMPro;
+        using UnityEngine.UI;
+        
+        public class Garbage_Residue : MonoBehaviour
+        {
+            [SerializeField]
+            private Text garbageText;
+        
+            [SerializeField]
+            private TextMeshProUGUI index_text;
+            private int molecule = 0;
+        
+            //inspector上でタイプ選択が必要
+            [SerializeField]
+            Trash.TrashStatus dast_type;
+        
+            [SerializeField]
+            private string index;
+        
+            // Start is called before the first frame update
+            void Start()
+            {
+                garbageText.text = index;
+            }
+        
+            // Update is called once per frame
+            void Update()
+            {
+                //dast_typeによって表示させる数値の変更
+                switch (dast_type)
+                {
+                    case Trash.TrashStatus.Can:
+                        index_text.text = GameManager.gManager.CanCount.ToString();
+                        break;
+        
+                    case Trash.TrashStatus.Bottle:
+                      index_text.text = GameManager.gManager.BottleCount.ToString();
+                        break;
+        
+                    case Trash.TrashStatus.PetBottle:
+                        index_text.text = GameManager.gManager.PetBottleCount.ToString();
+                        break;
+        
+                    default:
+                        break;
+                }
+            }
+            
+        }
+</code>
+</pre>
+</div>
+<p>
+    GameManagerからゴミの残数をもらってきてその残数を表示させるスクリプトです。
+    仕様追加でゴミの種類が増えてもいいように書いてあります。
+</p>
+</div>
+<body>
+    <p><a href=".\index.html">トップページへ戻る</a></p>

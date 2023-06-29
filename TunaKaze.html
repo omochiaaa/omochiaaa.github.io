@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>TunaToKazeToMau</title>
+    <link rel="stylesheet" href="style.css"/>
+    <link rel="stylesheet" href="vs2015.min.css" />
+    <script src="highlight.min.js"></script>
+    <script>hljs.highlightAll();</script>
+  </head>
+  <div>
+      <h3>概要</h3>
+      <hr class="subhr">
+      <p>ジャンル：2D横スクロールアクション</p>
+      <p>プレイ人数：1人</p>
+      <p>プラットフォーム：iPad mini</p>
+      <p>開発環境：2020.2.5f1</p>
+      <p>使用言語：C#</p>
+      <p>開発人数：8人(リーダ１人・プランナー１人・プログラマーリーダー１人・プログラマー４人・2Dデザイナー１人)</p>
+      <p>開発期間：21年10月～21年2月</p>
+      <p>株式会社ドワンゴ様の企業プロジェクト</p>
+      <h3>作品を通じて</h3>
+      <hr>  
+      <p>自分と密接にかかわってくる箇所を製作しているプログラマーと連携することでスムーズな政策ができたと思う</p>
+      <h3>学び</h3>
+      <hr>
+      <li>重力や空気抵抗など物理的な計算を学んだ</li>
+      <li>if文の乱用は後で見にくくなって困ること</li>
+      <h3>反省</h3>
+      最後のほうで修正はしたが途中までif文を乱用しすぎてほかの人どころか自分でも何の処理かわかりにくくなってしまったので
+      今後はそういうことがないようにしていきたい
+      <hr>
+      <p></p>
+      <p></p>
+      <h3>担当箇所</h3>
+      <hr class="subhr">
+      <h3>プレイヤーの挙動作成</h3>
+      <hr>
+    <div>
+      <pre class="code C#"><code>
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+
+public class Player : MonoBehaviour
+{
+    //---public-------------------------------------------------------    
+    //インスペクターで設定する
+    public float speed = 0f;
+    public GameObject wind;
+    //---private------------------------------------------------------
+    private Rigidbody2D rb = null;
+    private float x = 0;
+    private float WPx = 0;
+    private float WPy = 0;
+    private float g = 9.81f;
+    private float v = 1;
+    private bool frag = true; 
+    void Start()
+    {
+        rb = this.gameObject.GetComponent<Rigidbody2D>();
+        Debug.Log(wind.GetComponent<Wind>().WP_x);
+
+        Debug.Log(wind.GetComponent<Wind>().WP_y);
+
+
+
+        //WPx = 0.0f;
+        //WPy = 0.0f;
+    }
+
+    // Update is called once per frame
+    private void FixedUpdate()        
+    {
+        WPx = wind.GetComponent<Wind>().WP_x;
+        WPy = wind.GetComponent<Wind>().WP_y;
+        Vector2 force = new Vector2(WPx * 2000, 0.0f) * Time.deltaTime;    // 力を設定
+        rb.AddForce(force, ForceMode2D.Force);                       // 力を加える
+
+        if (0.2f != 0 && frag == true)
+        {
+            g = (g * (1 - WPy));
+            frag = false;
+            Debug.Log(g);
+            v = (v * (1 + WPy));
+            Debug.Log(v);
+        }
+        rb.gravityScale = g;
+        rb.drag = v;
+        // -----------------
+        // 境界外判定
+        // -----------------
+        // 画面の左下の座標を取得 (左上じゃないので注意)
+        Vector2 screen_LeftBottom = Camera.main.ScreenToWorldPoint(Vector3.zero);
+        // 画面の右上の座標を取得 (右下じゃないので注意)
+        Vector2 screen_RightTop = Camera.main.ScreenToWorldPoint(
+            new Vector3(Screen.width, Screen.height, 0)
+            );
+        // 現在のプレイヤーの移動情報(向きと強さ)
+        Vector2 player_velocity = rb.velocity;
+        // 現在のプレイヤーの位置座標
+        Vector2 player_pos = transform.position;
+        // 画面左端に達した時、プレイヤーが左方向に動いていたら、右方向の力に反転する
+        if ((player_pos.x < screen_LeftBottom.x) && (player_velocity.x < 0))
+            player_velocity.x *= -1;
+        // 画面右端に達した時、プレイヤーが右方向に動いていたら、左方向の力に反転する
+        if ((player_pos.x > screen_RightTop.x) && (player_velocity.x > 0))
+            player_velocity.x *= -1;
+        // 画面上端に達した時、プレイヤーが上方向に動いていたら、下方向の力に反転する
+        if ((player_pos.y > screen_RightTop.y) && (player_velocity.y > 0))
+            player_velocity.y *= -1;
+        // 更新
+        rb.velocity = player_velocity;
+    }
+    //Tag
+    void OnCollisionEnter2D(Collision2D collision)//衝突したら呼び出される処理
+    {
+        if (collision.gameObject.tag == "Item")
+        {
+
+        }
+    }
+
+}
+    </code>
+</pre>
+    </div>
+        <p>Tag管理で後半に作る予定だったアイテムの取得が制作できずに終わってしまったのが心残りです。 </p>       
+        <p>プレイヤーの位置は引っ張られた綱を0としてそこからの距離で力を掛けるようにしています</p>
+    </div> 
+    <h3>風の挙動作成</h3>
+    <hr>
+    <pre class="code C#"><code>
+        using System.Collections;
+        using System.Collections.Generic;
+        using UnityEngine;
+        
+        public class Wind : MonoBehaviour
+        {  
+            //---public-------------------------------------------------------    
+        
+            public Rigidbody2D rb = null;
+            //[HideInInspector]
+            public float WP_x;
+            //[HideInInspector]
+            public float WP_y;
+            //---private------------------------------------------------------
+        
+            private int randomdice;
+            private int dice;
+            private int m_dice;
+            private int tm_dice;
+            private float m = 0;
+            private float point = 0;
+            private float windvaluehold = 0;
+            private bool iventflag = false;
+            private Vector3 force;
+            ///////////////////////////////////////////////////////////////////////
+            [SerializeField]
+            GameManager script;                 //スクリプトを呼び出す変数
+            ///////////////////////////////////////////////////////////////////////
+            void Start()
+            {
+                randomdice = 0;
+                   
+                StartCoroutine("DB");
+            }
+        
+            // Update is called once per frame
+            void Update()
+            {
+                if (script.scoreManager.Score != 0)   //スコアが0以外の場合
+                {
+                    if (m == script.scoreManager.Score % 300)　//300m毎の判定
+                    {
+                        iventflag = true;
+                    }
+                }
+                if(iventflag == true)
+                {   
+                    if(point < script.scoreManager.Score)
+                    {
+                        randomwind();
+                    }
+                    point = script.scoreManager.Score;
+                }
+                
+            }
+            //デバッグ用
+            IEnumerator DB()
+            {
+        
+                while (true)
+                {
+                    Debug.Log("iventflag" + iventflag);
+                    Debug.Log(script.scoreManager.Score);
+                    yield return new WaitForSeconds(1);
+                }
+            }
+            /// <summary>
+            /// 無風
+            /// </summary>
+            void windless()
+            {
+                WP_x = 0;
+                WP_y = 0;
+            }
+            /// <summary>
+            /// 右向き
+            /// </summary>
+            void rightwind()
+            {
+                WP_x = windvaluehold;  // 力を設定
+                WP_y = 0.0f;
+            }
+            /// <summary>
+            /// 左向き
+            /// </summary>
+            void leftwind()
+            {
+                WP_x = -windvaluehold;    // 力を設定
+               
+                WP_y = 0.0f;
+            }
+            /// <summary>
+            /// 上向き
+            /// </summary>
+            void upwind()
+            {
+                WP_y = windvaluehold;  // 力を設定
+                WP_x = 0.0f;
+            }
+            /// <summary>
+            /// 下向き
+            /// </summary>
+            void downwind()
+            {
+                WP_y = -windvaluehold; // 力を設定
+                WP_x = 0.0f;
+        
+            }
+            /// <summary>
+            /// 斜め右上
+            /// </summary>
+            void upperright()
+            {
+                WP_x = windvaluehold;
+                WP_y = windvaluehold; // 力を設定
+            }
+            /// <summary>
+            /// 斜め右下
+            /// </summary>
+            void lowerright()
+            {
+               WP_x = windvaluehold;
+               WP_y = -windvaluehold;    // 力を設定
+        
+            }
+            /// <summary>
+            /// 斜め左上
+            /// </summary>
+            void upperleft()
+            {
+                WP_x = -windvaluehold;
+                WP_y = windvaluehold; // 力を設定
+            }
+            /// <summary>
+            /// 斜め左下
+            /// </summary>
+            void lowerleft()
+            {
+                 WP_x = -windvaluehold;
+                 WP_y = -windvaluehold;  // 力を設定
+            }
+            /// <summary>
+            /// 風抽選
+            /// </summary>
+            void randomwind()
+            {
+                m_dice = (Random.Range(1, 10));
+                if (script.scoreManager.Score >= 2000)　//風の強さの数値をいじる場所　2000M
+                {
+                    if (m_dice >= 3)
+                    {
+                        windvaluehold = 0.1f;
+                        windvaluehold = 0.1f;
+                    }
+                    else if (m_dice <= 4 && m_dice >= 7)   
+                    {
+                        windvaluehold = 0.2f;
+                        windvaluehold = 0.2f;
+                    }
+                    else
+                    {
+                        windvaluehold = 0.3f;
+                        windvaluehold = 0.3f;
+                    }
+                }
+                else if (script.scoreManager.Score >= 1000)　//風の強さの数値をいじる場所　1000M
+                {
+                    if (m_dice >= 5)
+                    {
+                        windvaluehold = 0.1f;
+                        windvaluehold = 0.1f;
+                    }
+                    else if (m_dice <= 6 && m_dice >= 10)
+                    {
+                        windvaluehold = 0.2f;
+                        windvaluehold = 0.2f;
+                    }
+                }       
+                    dice = (Random.Range(1, 10));
+                    Debug.Log(dice);
+                    if (dice == 1)
+                    {
+                        dice1();
+                        iventflag = false;
+                    }
+                
+            }
+            /// <summary>
+            /// 物置
+            /// </summary>
+            void dice1()
+            {
+                randomdice = (Random.Range(0, 8));
+                Debug.Log("風の抽選" + randomdice);
+                if (randomdice == 0)
+                {
+                    windless();
+                }
+                if (randomdice == 1)
+                {
+                    rightwind();
+                }
+        
+                if (randomdice == 2)
+                {
+                    leftwind();
+                }
+        
+                if (randomdice == 3)
+                {
+                    upwind();
+                }
+        
+                if (randomdice == 4)
+                {
+                    downwind();
+                }
+        
+                if (randomdice == 5)
+                {
+                    upperright();
+                }
+        
+                if (randomdice == 6)
+                {
+                    lowerright();
+                }
+        
+                if (randomdice == 7)
+                {
+                    upperleft();
+                }
+        
+                if (randomdice == 8)
+                {
+                    lowerleft();
+                }
+        
+            }
+        }
+        
+        </code>
+        </pre>
+        <p>ゲームのメインギミックの1つである風のスクリプトです。
+            ランダムで出た数字の中で風向きが決定しその向きによって重力や空気抵抗などが変わるスクリプトになっています。
+        </p>
+  <body>
+    <p><a href=".\index.html">トップページへ戻る</a></p>

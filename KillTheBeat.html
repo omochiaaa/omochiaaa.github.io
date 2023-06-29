@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <title>KillTheBeat</title>
+    <link rel="stylesheet" href="style.css" />
+    <link rel="stylesheet" href="vs2015.min.css" />
+    <script src="highlight.min.js"></script>
+    <script>hljs.highlightAll();</script>
+</head>
+<div>
+    <h3>概要</h3>
+    <hr class="subhr">
+    <p>ジャンル：リズムゲーム×ファーストパーソン・シューティングゲーム</p>
+    <p>プレイ人数：1人</p>
+    <p>プラットフォーム：PC</p>
+    <p>開発環境：2021.2.5f1</p>
+    <p>使用言語：C#</p>
+    <p>開発人数：9人(リーダ/プランナー１人・プログラマーリーダー1人・プログラマー5人・デザイナー2人)</p>
+    <p>開発期間：22年10月～23年1月</p>
+    <p>音ゲー×FPSゲームという新しジャンルのゲームを作ってみたくて挑戦しました。
+        このゲームの面白いところはリズムに乗って銃を撃ち、敵を倒した時の爽快感や敵を敵を倒していくとエフェクトやSEが派手なっていくところです。
+    </p>
+    <h3>作品を通じて</h3>
+      <hr>  
+      <p> UI関係全般の制作をした。今までのゲームの中で一番規模が大きかったが達成感と学びが多かった。</p>
+      <h3>学び</h3>
+      <hr>
+      <li>DoTweenなど演出が良くなるものを色々知ることができた</li>
+      <li>3D環境でどうUIを表示すればおかしくならないかを学ぶことができた</li>
+      <h3>反省</h3>
+      <hr>
+      <p>デザイナーとのコミュニケーションでいくつかエラーが発生してしまったのでもっと密に取れればよかった</p>
+      <p>HUDの作成に少し手間取ってしまい時間をかけてしまいスケジュール管理などで周りに迷惑をかけてしまったため今後はしっかりと
+        見立てをして政策をしていきたい</p>
+    <h3>担当箇所</h3>
+    <hr class="subhr">
+    <h3>select画面での曲変更動作や色変更</h3>
+    <hr>
+    <div>
+        <pre class="code C#"><code>
+            using System.Collections;
+            using System.Collections.Generic;
+            using UnityEngine;
+            using UnityEngine.UI;
+            using DG.Tweening;
+            
+            public class JaketScript : MonoBehaviour
+            {
+                [SerializeField]
+                private Button button;
+            
+                [SerializeField]
+                private List<SongData> songlist;
+                [SerializeField]
+                private List<Image> frames;
+            
+                [SerializeField]
+                private List<Transform> transforms;
+            
+                [SerializeField]
+                private List<Sprite> jacketSprites;
+            
+                public static int SelectSongNum = 0; //現在の曲番号
+            
+                private bool CanChangeSong = false;
+            
+                [SerializeField]
+                private int loopImagCenterNum;
+            
+                [SerializeField]
+                private Vector3 defscale = new Vector3(1, 1, 1);
+            
+                [SerializeField]
+                private Vector3 bigscale = new Vector3(1.7f, 1.7f, 1.7f);
+            
+                private float mousewheelpoint = 0;
+                [SerializeField]
+                private bool Select_check = false;
+            
+                [SerializeField]
+                private Color_change colorChange; 
+                [SerializeField]
+                private List<SongData> songData = new List<SongData>();
+            
+                private float delaytime = 0; //曲変更のディレイ
+            
+                private float delaytime1 = 0;
+            
+                public bool Scroll = false;
+                [SerializeField]
+                private ButtonKeepColor buttonKeep; //スタートボタンの色変更
+                [SerializeField]
+                private ButtonKeepColor buckButtonKeep; //バックボタンの色変更
+                private void Awake()
+                {
+                    SelectSongNum = 1;
+                    GameManager.instance.ChengeSongData(songData[SelectSongNum]);
+                }
+                private void Start()
+                {
+                    CanChangeSong = true;
+                    colorChange.Color_c();
+            
+                    for (int i = 0; i < 5; i++)
+                    {
+                        if (i == 0)
+                        {
+                            frames[i].sprite = jacketSprites[jacketSprites.Count - 1];
+                        }
+                        else
+                        {
+                            frames[i].sprite = jacketSprites[(i - 1) % jacketSprites.Count];
+                        }
+                    }
+            
+                }
+            
+                void Update()
+                {
+            
+                    delaytime += Time.deltaTime;
+            
+                    delaytime1 += Time.deltaTime;
+            
+                    mousewheelpoint = Input.GetAxis("Mouse ScrollWheel");
+            
+                    if (Select_check == true && CanChangeSong == true) {
+                        if (mousewheelpoint < 0 && delaytime > 0.8f && delaytime1 > 1f && !Scroll)  //下方向入力時
+                        {
+                            Scroll = true;
+                            delaytime = 0;
+                            if (SelectSongNum > 0)
+                            {
+                                SelectSongNum--;
+                                GameManager.instance.ChengeSongData(songData[SelectSongNum]);
+                                buttonKeep.ChengeHighLightColor();
+                                buckButtonKeep.ChengeHighLightColor();
+                                SelectScenePreview.instance.CueSetAndPlay(SelectSongNum);
+                            }
+                            else
+                            {
+                                SelectSongNum = jacketSprites.Count - 1;
+                                GameManager.instance.ChengeSongData(songData[SelectSongNum]);
+                                buttonKeep.ChengeHighLightColor();
+                                buckButtonKeep.ChengeHighLightColor();
+                                SelectScenePreview.instance.CueSetAndPlay(SelectSongNum);
+                            }
+                            UpSetjacket();
+            
+                            loopImagCenterNum = (loopImagCenterNum + 1) % transforms.Count;
+            
+                            MoveJacket();
+                            colorChange.Color_c();
+            
+            
+                        }
+                        else if (mousewheelpoint > 0 && delaytime > 0.5f && delaytime1 > 1f && !Scroll)  //上方向入力時
+                        {
+                            Scroll = true;
+                            delaytime = 0;
+                            if (SelectSongNum < jacketSprites.Count - 1)
+                            {
+                                SelectSongNum++;
+                                GameManager.instance.ChengeSongData(songData[SelectSongNum]);
+                                buttonKeep.ChengeHighLightColor();
+                                buckButtonKeep.ChengeHighLightColor();
+                                SelectScenePreview.instance.CueSetAndPlay(SelectSongNum);
+                            }
+                            else
+                            {
+                                SelectSongNum = 0;
+                                GameManager.instance.ChengeSongData(songData[SelectSongNum]);
+                                buttonKeep.ChengeHighLightColor();
+                                buckButtonKeep.ChengeHighLightColor();
+                                SelectScenePreview.instance.CueSetAndPlay(SelectSongNum);
+                            }
+            
+                            LowSetUp();
+            
+                            loopImagCenterNum = (loopImagCenterNum - 1) % transforms.Count;
+            
+                            if (loopImagCenterNum < 0)
+                            {
+                                loopImagCenterNum = transforms.Count - 1;
+                            }
+            
+                            MoveJacket();
+                            colorChange.Color_c();
+                        }
+                    }
+            
+                    if(SelectSongNum == 2)
+                    {
+                        button.gameObject.SetActive(false);
+                    }
+                    else
+                    {
+                        button.gameObject.SetActive(true);
+                    }
+                }
+            
+                private void MoveJacket()
+                {
+                    for (int i = 0; i < transforms.Count; i++)
+                    {
+                        int nextNum = loopImagCenterNum + i;
+            
+                        if (nextNum < transforms.Count)
+                        {
+                            Debug.Log("i" + i + "  nextNum" + nextNum);
+                            frames[i].transform.DOMove(transforms[nextNum].transform.position, 0.7f).SetEase(Ease.OutQuart);
+            
+                            if (nextNum == 2)
+                            {
+                                frames[i].transform.DOScale(bigscale, 0.7f);
+                            }
+                            else
+                            {
+                                frames[i].transform.DOScale(defscale, 0.7f);
+                            }
+            
+                            if (nextNum == 0 || nextNum == 4)
+                            {
+                                frames[i].color = new Color(0, 0, 0, 0);
+                            }
+                            else
+                            {
+                                frames[i].color = new Color(1, 1, 1, 1);
+                            }
+                        }
+                        else if (nextNum >= transforms.Count)
+                        {
+                            nextNum = nextNum - transforms.Count;
+            
+                            Debug.Log("i" + i + "  nextNum" + nextNum);
+                            frames[i].transform.DOMove(transforms[nextNum].transform.position, 0.7f).SetEase(Ease.OutQuart);
+            
+                            if (nextNum == 2)
+                            {
+                                frames[i].transform.DOScale(bigscale, 0.7f);
+                            }
+                            else
+                            {
+                                frames[i].transform.DOScale(defscale, 0.7f);
+                            }
+                            if (nextNum == 0 || nextNum == 4)
+                            {
+                                frames[i].color = new Color(0, 0, 0, 0);
+                            }
+                            else
+                            {
+                                frames[i].color = new Color(1, 1, 1, 1);
+                            }
+                        }
+            
+                    }
+            
+                }
+                private void UpSetjacket()
+                {
+                    for (int i = 0; i < transforms.Count; i++)
+                    {
+                        int nextNum = loopImagCenterNum + i;
+            
+                        if (nextNum < transforms.Count)
+                        {
+            
+                            if (nextNum == 4)
+                            {
+                                int jaketNum = (SelectSongNum - 2) % jacketSprites.Count;
+            
+            
+                                if (jaketNum < 0)
+                                {
+                                    jaketNum = (jacketSprites.Count) + jaketNum;
+                                }
+            
+                                frames[i].sprite = jacketSprites[jaketNum];
+                            }
+            
+                        }
+                        else if (nextNum >= transforms.Count)
+                        {
+                            nextNum = nextNum - transforms.Count;
+            
+            
+                            if (nextNum == 4)
+                            {
+                                int jaketNum = (SelectSongNum) % jacketSprites.Count;
+            
+                                if (jaketNum < 0)
+                                {
+                                    jaketNum = (jacketSprites.Count - 1) + jaketNum;
+                                }
+            
+            
+            
+                                frames[i].sprite = jacketSprites[jaketNum];
+                            }
+            
+                        }
+                    }
+                }
+                private void LowSetUp()
+                {
+                    for (int i = 0; i < transforms.Count; i++)
+                    {
+                        int nextNum = loopImagCenterNum + i;
+            
+                        if (nextNum < transforms.Count)
+                        {
+            
+                            if (nextNum == 0)
+                            {
+                                frames[i].sprite = jacketSprites[(SelectSongNum + 2) % jacketSprites.Count];
+                            }
+            
+                        }
+                        else if (nextNum >= transforms.Count)
+                        {
+                            nextNum = nextNum - transforms.Count;
+            
+            
+                            if (nextNum == 0)
+                            {
+                                frames[i].sprite = jacketSprites[(SelectSongNum + 2) % jacketSprites.Count];
+                            }
+            
+                        }
+                    }
+                }
+                public void ChangeCanChangeSong(bool value)
+                {
+                    CanChangeSong = value;
+                }
+            }
+}
+    </code>
+</pre>
+    </div>
+    <p>
+        曲を高速で入れ替えできないようにするなど細かいところに調整を入れました。このスクリプトの変数をほかスクリプトでも使いselect画面は動いています
+    </p>
+</div>
+      <h3>楽曲タイトルや作曲者の表示アニメーションの作成</h3>
+      <hr>
+    <div>
+      <pre class="code C#"><code>
+        using System.Collections;
+        using System.Collections.Generic;
+        using UnityEngine;
+        using UnityEngine.UI;
+        using DG.Tweening;
+        
+        public class Titleanim : MonoBehaviour
+        {
+        
+            public Transform Target;
+        
+            //private float moveDelay = 0;
+        
+            //private float delayTime = 0f;
+        
+            public bool MoveEndFlag = false;
+            [SerializeField]
+            GameObject move1;
+        
+            [SerializeField]
+            GameObject move2;
+        
+            [SerializeField]
+            GameObject move3;
+        
+            [SerializeField]
+            GameObject move4;
+        
+            [SerializeField, Header("出る時間")]
+            private float starttime;
+        
+            [SerializeField, Header("動く速度")]
+            private float movetime;
+        
+            [SerializeField]
+            private JaketScript jacketScript;
+        
+            [SerializeField]
+            private bool EndScroll;
+        
+            [SerializeField]
+            MusicMtitle musicMtitle;
+        
+            [SerializeField]
+            public Vector3 StartPos;
+            // Update is called once per frame
+        
+        
+            public void StartMove()
+            {
+                move1.transform.position = new Vector3(StartPos.x, move1.transform.position.y, move1.transform.position.z);
+                move2.transform.position = new Vector3(StartPos.x, move2.transform.position.y, move2.transform.position.z);
+                move3.transform.position = new Vector3(StartPos.x, move3.transform.position.y, move3.transform.position.z);
+                move4.transform.position = new Vector3(StartPos.x, move4.transform.position.y, move4.transform.position.z);
+        
+                StartCoroutine(Moveflag());
+            }
+            public IEnumerator Moveflag()
+            {
+                Debug.Log("MoveFlag");
+                yield return null;
+                move1.transform.DOMoveX(Target.position.x, movetime);
+                yield return new WaitForSeconds(starttime);
+                move2.transform.DOMoveX(Target.position.x, movetime);
+                yield return new WaitForSeconds(starttime);
+                move3.transform.DOMoveX(Target.position.x, movetime);
+                yield return new WaitForSeconds(starttime);
+                move4.transform.DOMoveX(Target.position.x, movetime).OnComplete(() =>
+                {           
+                        jacketScript.Scroll = false;
+                        musicMtitle.MoveEndFlag = false;
+                });
+        
+        
+            }
+        
+        }
+        
+    </code>
+</pre>
+    </div>
+        <p>
+            タイトル表示などにもアニメーションが欲しいということで作成しました。
+            タイトルや作曲者など出てくるタイミングがずれるように組まれています。
+        </p>
+        <h3>select画面動画</h3>
+        <video src="Movie/Select.mp4" 　width="560" height="315" controls></video>
+    </div> 
+      <h3>遅れて追従するHUDの作成</h3>
+      <hr>
+    <div>
+      <pre class="code C#"><code>
+        using System.Collections;
+        using System.Collections.Generic;
+        using UnityEngine;
+        
+        namespace raspberly.ovr
+        {
+            public class FollowHUD : MonoBehaviour
+            {        
+                [SerializeField] private Transform target; //追従先
+                [SerializeField] private float followMoveSpeed; //追従速度
+                [SerializeField] private float rotationSpeed;
+                [SerializeField] private bool move = true;
+
+                [SerializeField] private Camera maincCamera = null;
+                [SerializeField] private Vector3 limit;
+                [SerializeField] private Vector3 velocity = Vector3.zero;
+                [SerializeField] private float toTagetTime;
+                [SerializeField] private float maxSpeed;
+                [SerializeField] private Vector3 newPos = Vector3.zero;
+        
+                private void Start()
+                {
+                    velocity = Vector3.zero;
+                }
+                private void Update()
+                {
+        
+                    if(move == true)
+                    {
+                        SmoothDump();
+                    }
+        
+                    transform.rotation = maincCamera.transform.rotation;
+                }
+        
+                private void SmoothDump()
+                {
+                    var newPosSmooth = Vector3.SmoothDamp(transform.position, target.position, ref velocity, toTagetTime, maxSpeed);
+        
+                    if (transform.position.x > target.position.x + limit.x)
+                    {
+                        newPos = transform.position;
+                        newPos.x = target.position.x + limit.x;
+                        transform.position = newPos;
+                    }
+                    else if (transform.position.x < target.position.x - limit.x)
+                    {
+                        newPos = transform.position;
+                        newPos.x = target.position.x - limit.x;
+                        transform.position = newPos;
+                    }
+                    else if (velocity.x < maxSpeed && velocity.x > -maxSpeed)
+                    {
+                        newPos = newPosSmooth;
+        
+                        newPos.y = transform.position.y;
+                        newPos.z = transform.position.z;
+                        transform.position = newPos;
+                    }
+        
+                    if (transform.position.y > target.position.y + limit.y)
+                    {
+                        newPos = transform.position;
+                        newPos.y = target.position.y + limit.y;
+                        transform.position = newPos;
+                    }
+                    else if (transform.position.y < target.position.y - limit.y)
+                    {
+                        newPos = transform.position;
+                        newPos.y = target.position.y - limit.y;
+                        transform.position = newPos;
+                    }
+                    else if (velocity.y < maxSpeed && velocity.y > -maxSpeed)
+                    {
+                        newPos = newPosSmooth;
+        
+                        newPos.z = transform.position.z;
+                        newPos.x = transform.position.x;
+                        transform.position = newPos;
+                    }
+        
+                    if (transform.position.z > target.position.z + limit.z)
+                    {
+                        newPos = transform.position;
+                        newPos.z = target.position.z + limit.z;
+                        transform.position = newPos;
+                    }
+                    else if (transform.position.z < target.position.z - limit.z)
+                    {
+                        newPos = transform.position;
+                        newPos.z = target.position.z - limit.z;
+                        transform.position = newPos;
+                    }
+                    else if (velocity.z < maxSpeed && velocity.z > -maxSpeed)
+                    {
+                        newPos = newPosSmooth;
+        
+                        newPos.y = transform.position.y;
+                        newPos.x = transform.position.x;
+                        transform.position = newPos;
+                    }
+                }
+            }
+        }
+    </code>
+</pre>
+    </div>
+        <p>
+            SmoothDampを使用して動作のほうをしています。
+            もっと簡略化をして書けたと思うので今後は要改良だと思います。
+        </p>
+    </div> 
+<body>
+    <p><a href=".\index.html">トップページへ戻る</a></p>

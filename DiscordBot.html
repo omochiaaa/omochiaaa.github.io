@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>DiscordBOT</title>
+    <link rel="stylesheet" href="style.css"/>
+    <link rel="stylesheet" href="vs2015.min.css" />
+    <script src="highlight.min.js"></script>
+    <script>hljs.highlightAll();</script>
+  </head>
+  <div>
+    <h3>概要</h3>
+    <hr class="subhr">
+    <p>使用言語：Python</p>
+    <p>開発人数：2人</p>
+    <p>開発期間：2-3日</p>
+    <p>PythonでDiscordという通話アプリの読み上げbotを友人に教えてもらいながら製作しました。</p>
+      <h3>学び</h3>
+      <hr>
+      <li>DiscordでのBot作成方法について学びました</li>
+      <h3>担当箇所</h3>
+      <hr class="subhr">
+      <h3>discordの読み上げbotを自作</h3>
+      <hr>
+    <div>
+      <pre class="code C#"><code>
+        import subprocess
+        import re
+        
+        # ************************************************
+        # remove_custom_emoji
+        # 絵文字IDは読み上げない
+        # ************************************************
+        def remove_custom_emoji(text):
+            
+            #pattern = r'<:[a-zA-Z0-9_]+:[0-9]+>'    # カスタム絵文字のパターン
+            pattern = r'<:'    # カスタム絵文字のパターン
+            text = re.sub(pattern,'',text)   # 置換処理
+            pattern = r':[0-9]+>'    # カスタム絵文字のパターン
+            return re.sub(pattern,'',text)   # 置換処理
+        
+        # ************************************************
+        # url_shouryaku
+        # URLなら省略
+        # ************************************************
+        def url_shouryaku(text):
+            pattern = "https?://[\w/:%#\$&\?\(\)~\.=\+\-]+"
+            return re.sub(pattern,'URLは省略するのデス！',text)   # 置換処理
+        
+        # ************************************************
+        # remove_picture
+        # 画像ファイルなら読み上げない
+        # ************************************************
+        def remove_picture(text):
+            pattern = r'.*(\.jpg|\.jpeg|\.gif|\.png|\.bmp)'
+            return re.sub(pattern,'',text)   # 置換処理
+        
+        # ************************************************
+        # remove_command
+        # コマンドは読み上げない
+        # ************************************************
+        def remove_command(text):
+            pattern = r'^\!.*'
+            return re.sub(pattern,'',text)   # 置換処理
+        
+        # ************************************************
+        # remove_log
+        # 参加ログは読み上げない
+        # ************************************************
+        def remove_log(text):
+            pattern = r'(\【VC参加ログ\】.*)'
+            return re.sub(pattern,'',text)   # 置換処理
+        
+        # ************************************************
+        # user_custam
+        # ユーザ登録した文字を読み替える
+        # ************************************************
+        def user_custam(text):
+        
+            f = open('C:/open_jtalk/bin/dic.txt', 'r')
+            line = f.readline()
+        
+            while line:
+                pattern = line.strip().split(',')
+                if pattern[0] in text:
+                    text = text.replace(pattern[0], pattern[1])
+                    print('置換後のtext:'+text)
+                    break
+                else:
+                    line = f.readline()
+            f.close()
+        
+            return text
+        
+        
+        
+        # ************************************************
+        # creat_WAV
+        # message.contentをテキストファイルと音声ファイルに書き込む
+        # 引数：inputText
+        # 書き込みファイル：input.txt、output.wav
+        # ************************************************
+        def creat_WAV(inputText):
+                # message.contentをテキストファイルに書き込み
+        
+            inputText = remove_custom_emoji(inputText)   # 絵文字IDは読み上げない
+            inputText = remove_command(inputText)   # コマンドは読み上げない
+            inputText = url_shouryaku(inputText)   # URLなら省略
+            inputText = remove_picture(inputText)   # 画像なら読み上げない
+            inputText = remove_log(inputText)   # 参加ログなら読み上げない
+            inputText = user_custam(inputText)   # ユーザ登録した文字を読み替える
+            input_file = 'input.txt'
+        
+            with open(input_file,'w',encoding='shift_jis') as file:
+                file.write(inputText)
+        
+            command = 'C:/open_jtalk/bin/open_jtalk -x {x} -m {m} -r {r} -ow {ow} {input_file}'
+        
+            #辞書のPath
+            x = 'C:/open_jtalk/bin/dic'
+        
+            #ボイスファイルのPath
+            #m = 'C:/open_jtalk/bin/nitech_jp_atr503_m001.htsvoice'
+            #m = 'C:/open_jtalk/bin/mei/mei_sad.htsvoice'
+            #m = 'C:/open_jtalk/bin/mei/mei_angry.htsvoice'
+            #m = 'C:/open_jtalk/bin/mei/mei_bashful.htsvoice'
+            #m = 'C:/open_jtalk/bin/mei/mei_happy.htsvoice'
+            m = 'C:/open_jtalk/bin/mei/mei_normal.htsvoice'
+        
+            #発声のスピード
+            #r = '2.0'
+            r = '1.2'
+        
+            #出力ファイル名　and　Path
+            ow = 'output.wav'
+        
+            args= {'x':x, 'm':m, 'r':r, 'ow':ow, 'input_file':input_file}
+        
+            cmd= command.format(**args)
+            print(cmd)
+        
+            subprocess.run(cmd)
+            return True
+        
+        if __name__ == '__main__':
+            creat_WAV('テスト')
+    </code>
+  </pre>
+    <pre class="code C#"><code>
+      import discord
+from discord.ext import commands
+import subprocess
+import ffmpeg
+import asyncio
+from voice_generator import creat_WAV
+
+client = commands.Bot(command_prefix='.')
+voice_client = None
+messageid = None
+
+
+@client.event
+async def on_ready():
+    print('Logged in as')
+    print(client.user.name)
+    print(client.user.id)
+    print('------')
+
+@client.event
+async def on_message(message):
+    global messageid
+    text = message.content
+    if message.content.startswith(".join"):
+    	messageid = message.channel.id
+    	print(messageid)
+    	await message.author.voice.channel.connect()#vc接続
+    	await message.channel.send("接続しました。")
+    	return
+    
+    if message.channel.id != messageid:
+        print(message.channel.id)
+        print("テスト用")
+        return
+    
+    if message.content.startswith(".bye"):
+        await message.channel.send("切断しました。")
+        await message.author.guild.voice_client.disconnect()  #VC切断
+        return
+        
+    if message.content.startswith(".add"):
+           input_Text = message.content.replace(".add ","")
+           dic_file = open("dictionary.dic","a")
+           dic_file.write(input_Text + "[SPL]")
+           dic_file.close()
+           await message.channel.send(input_Text + "を辞書に追加しました。")
+           print("[  log  ]辞書追加 : " + input_Text)
+           return
+           
+    if message.content.startswith(".del "):
+           input_Text = message.content.replace(".del ","")
+           dic_file = open("dictionary.dic","r")
+           dic_file_read = dic_file.read()
+           dic_file_read = dic_file_read.split("[SPL]")
+           dic_file_read.remove(input_Text)
+           dic_file.close()
+           dic_file = open("dictionary.dic","w")
+           dic_file_read = str(dic_file_read).replace("[","").replace("]","").replace("'","").replace(", ","[SPL]")
+           dic_file.write(dic_file_read)
+           dic_file.close()
+           await message.channel.send(message.content.replace(".del ","") + "を辞書から削除しました。")
+           print("[  log  ]辞書削除 : " + message.content.replace(".del ",""))
+           return
+
+    else:
+        if message.author.bot:
+            return
+        if message.content.startswith("<"):
+        	return
+        if message.guild.voice_client:
+            text = text.replace('\n', '、')
+            print(text)
+            creat_WAV(text)
+            source = discord.FFmpegPCMAudio("output.wav")
+            while message.guild.voice_client.is_playing():
+              await asyncio.sleep(3)
+            message.guild.voice_client.play(source)
+        else:
+            pass
+
+
+client.run("トークンID")
+</code>
+</pre>
+    </div>
+        <p>
+        辞書機能も追加されているので読まれない単語など修正することができます
+        </p>
+    </div> 
+  <body>
+    <p><a href=".\index.html">トップページへ戻る</a></p>
