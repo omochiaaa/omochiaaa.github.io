@@ -1,1 +1,0 @@
-# omochiaaa.github.io
